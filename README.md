@@ -9,14 +9,32 @@ Sadly for me, since I wasnt using my own computer at the time (for security) I e
 
 This project was the result of having to figure out what was inside all of those *inject.bin* files that I had saved over time for on-the-fly payload changing. This script solved my problem of often losing or accidentaly deleting the source code files of all my hacks.
 
+## Fork additions (TheKester)
+
+This repository is a fork maintained by thekester (GitHub: [thekester](https://github.com/thekester)). The `DuckDecoder.py` script was rewritten for Python 3, cleaned up, and extended so it is easier to use on modern systems. Highlights:
+
+- Added `--layout/ -l` so dumps recorded on both QWERTY and AZERTY keyboards decode properly (no more guessing which layout an implant used).
+- Modernized the CLI with argparse, optional `--output` file support, and friendlier help/usage text.
+- Display mode now shows the raw key tokens (`<BSPACE>`, `<TAB>`, `<ENTER>`, arrow keys, etc.) while decode mode applies the edits/backspaces to reconstruct exactly what was typed.
+- Refactored the key-map logic into readable tables so adding future layouts is straightforward.
+
+Everything else—especially the original story, usage examples, and keyboard mapping instructions—remains true to the upstream work by @JPaulMora.
+
 ## How to use it
 
-The project was made using python 2.7.3, to run it you can do:
+The fork targets modern Python 3 (tested with 3.10+). The quickest way to get started is:
+
 ```
- python DuckDecoder.py <display | decode> /path/to/inject.bin
+python3 DuckDecoder.py <display | decode> /path/to/inject.bin [--layout qwerty|azerty] [-o decoded.txt]
 ```
 
-Run it without arguments to display the help menu. The program currently has two modes, to explain them better lets say I encode this payload:
+Run it without arguments to display the help menu. The program still has the original two modes, but their meaning is now explicit:
+
+- `display` shows the raw sequence of HID tokens so you can see when backspace, enter, arrows, etc. were triggered.
+- `decode` applies those tokens (removing characters when backspaces appear, inserting newlines on enter, etc.) so the recovered text mirrors what the victim actually saw.
+
+To explain the difference, let’s say I encode this payload:
+
 ```
  DELAY 500
  STRING Hello!!
@@ -24,21 +42,18 @@ Run it without arguments to display the help menu. The program currently has two
  ENTER
  STRING This is a test!!
 ```
-The display mode is intended to show you what would the code look like once it was typed by the duck, deleting when backspace and not showing delays. Runing __DuckDecoder.py display /path/to/inject.bin__ will output this:
+
+`display` keeps the tokens inlined so the editing keys stay visible:
+
+```
+Hello!!<BSPACE><ENTER>This is a test!!
+```
+
+`decode` applies the edits while respecting the keyboard layout you selected, which produces the same text the duck typed on the target system:
+
 ```
  Hello!
  This is a test!!
-```
-
-The decode mode is intended to output the text in Duck-ready format for revision or reuse in other scripts. Runing __DuckDecoder.py decode /path/to/inject.bin__ will output this:
-
-```
- DELAY 500
-
- STRING Hello!!
- BACKSPACE 
- ENTER 
- STRING This is a test!!
 ```
 
 ## Want support for a different keyboard?
@@ -55,3 +70,4 @@ The lists should look like this, one for shift and one for plain characters:
  CapLetters = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"etc..]
 ```
 
+In this fork each layout lives in its own helper (see `_build_qwerty_layout` and `_build_azerty_layout` inside `DuckDecoder.py`). Once you have both lists for your keyboard, build a similar dictionary of HID codes to characters and register it inside the `LAYOUTS` map so the `--layout` flag immediately recognizes it.
